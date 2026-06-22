@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OmniAgent Workspace</title>
+    <meta name="description" content="Real Estate AI OmniAgent Workspace — manage leads, appointments, and property listings." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script>
+      (function () {
+        var stored = localStorage.getItem("dashboard_lang");
+        var lang = stored;
+        if (!lang) {
+          var nav = (navigator.language || "en").slice(0, 2);
+          lang = ["en", "es", "ar"].indexOf(nav) >= 0 ? nav : "en";
+        }
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <h1 data-i18n="app.title">OmniAgent Workspace</h1>
+          <p class="brand-sub" data-i18n="app.subtitle">AI chatbot · leads · appointments · listings</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="status" id="status">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText" data-i18n="conn.checking">Checking connection…</span>
+        </div>
+        <select id="langSelect" class="lang-select" aria-label="Language">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="ar">العربية</option>
+        </select>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="stats-row" id="statsRow">
+        <div class="stat-card">
+          <span class="stat-label" data-i18n="stats.conversations">Conversations</span>
+          <span class="stat-value" id="statConversations">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label" data-i18n="stats.leads">Leads</span>
+          <span class="stat-value" id="statLeads">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label" data-i18n="stats.appointments">Appointments</span>
+          <span class="stat-value" id="statAppointments">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label" data-i18n="stats.listings">Active Listings</span>
+          <span class="stat-value" id="statListings">0</span>
+        </div>
+      </section>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="conversations" id="tab-conversations" data-i18n="tabs.conversations">Conversations</button>
+        <button class="tab" data-tab="leads" id="tab-leads" data-i18n="tabs.leads">Leads</button>
+        <button class="tab" data-tab="appointments" id="tab-appointments" data-i18n="tabs.appointments">Appointments</button>
+        <button class="tab" data-tab="listings" id="tab-listings" data-i18n="tabs.listings">Listings</button>
+        <button class="tab" data-tab="embed" id="tab-embed" data-i18n="tabs.embed">Embed snippet</button>
+        <button class="tab" data-tab="settings" id="tab-settings" data-i18n="tabs.settings">Settings</button>
+        <div class="tab-actions">
+          <button class="btn ghost" id="refreshBtn" data-i18n="refresh">Refresh</button>
+        </div>
+      </nav>
+
+      <!-- Conversations -->
+      <section class="card panel tab-panel active" id="panel-conversations">
+        <div id="conversationsList" class="list"></div>
+      </section>
+
+      <!-- Leads -->
+      <section class="card panel tab-panel" id="panel-leads">
+        <div id="leadsList" class="list"></div>
+      </section>
+
+      <!-- Appointments -->
+      <section class="card panel tab-panel" id="panel-appointments">
+        <div id="appointmentsList" class="list"></div>
+      </section>
+
+      <!-- Listings -->
+      <section class="card panel tab-panel" id="panel-listings">
+        <div class="panel-header">
+          <h2 data-i18n="tabs.listings">Listings</h2>
+          <button class="btn primary" id="addListingBtn" data-i18n="listing.add">+ Add Listing</button>
+        </div>
+        <div class="listing-filters">
+          <select id="listingFilterType" class="lang-select">
+            <option value="">All types</option>
+            <option value="for_sale" data-i18n="listing.type.for_sale">For Sale</option>
+            <option value="for_rent" data-i18n="listing.type.for_rent">For Rent</option>
+          </select>
+          <select id="listingFilterStatus" class="lang-select">
+            <option value="">All statuses</option>
+            <option value="active" data-i18n="listing.status.active">Active</option>
+            <option value="pending" data-i18n="listing.status.pending">Pending</option>
+            <option value="sold" data-i18n="listing.status.sold">Sold</option>
+            <option value="off_market" data-i18n="listing.status.off_market">Off Market</option>
+          </select>
+        </div>
+        <div id="listingsList" class="listing-grid"></div>
+      </section>
+
+      <!-- Embed -->
+      <section class="card panel tab-panel" id="panel-embed">
+        <h2 data-i18n="embed.title">Embed on your website</h2>
+        <p class="muted" data-i18n="embed.help">
+          Paste this snippet just before your closing &lt;/body&gt; tag.
+        </p>
+        <div class="embed-block">
+          <pre id="embedSnippet"></pre>
+          <button class="btn primary" id="copyEmbedBtn" data-i18n="embed.copy">Copy</button>
+        </div>
+      </section>
+
+      <!-- Settings -->
+      <section class="card panel tab-panel" id="panel-settings">
+        <h2 data-i18n="settings.calendar.title">Google Calendar integration</h2>
+        <p class="muted" data-i18n="settings.calendar.help">
+          Connect your Google Calendar so that confirmed appointments automatically create events and send invitations to visitors.
+        </p>
+        <div class="settings-row" id="googleCalendarStatus">
+          <div class="settings-info">
+            <span class="dot" id="googleDot"></span>
+            <span id="googleStatusText" data-i18n="settings.calendar.checking">Checking…</span>
+          </div>
+          <div class="settings-actions">
+            <a class="btn primary" id="googleConnectBtn" href="/api/google/oauth/start" data-i18n="settings.calendar.connect" hidden>Connect Google Calendar</a>
+            <button class="btn ghost" id="googleDisconnectBtn" data-i18n="settings.calendar.disconnect" hidden>Disconnect</button>
+          </div>
+        </div>
+        <p class="muted small" id="googleNotConfiguredHint" data-i18n="settings.calendar.not_configured" hidden>
+          OAuth credentials are not set on the server. See <code>.env.example</code> to configure GOOGLE_OAUTH_CLIENT_ID / SECRET.
+        </p>
+
+        <h2 style="margin-top:28px" data-i18n="settings.sms.title">SMS Reminders</h2>
+        <p class="muted" data-i18n="settings.sms.help">
+          Automatically send an SMS to visitors 3 hours before their confirmed appointment. They can reply YES to confirm or NO to reschedule.
+        </p>
+        <div class="settings-row" id="smsStatus">
+          <div class="settings-info">
+            <span class="dot" id="smsDot"></span>
+            <span id="smsStatusText" data-i18n="settings.sms.checking">Checking…</span>
+          </div>
+        </div>
+        <p class="muted small" id="smsNotConfiguredHint" data-i18n="settings.sms.not_configured_hint" hidden>
+          Twilio credentials are not set. See <code>.env.example</code> to configure TWILIO_ACCOUNT_SID / AUTH_TOKEN / FROM_NUMBER.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <small>© Real Estate Automation</small>
+    </footer>
+
+    <!-- Conversation transcript modal -->
+    <div id="conversationModal" class="modal" hidden>
+      <div class="modal-backdrop"></div>
+      <div class="modal-content card">
+        <header class="modal-header">
+          <h2 id="modalTitle"></h2>
+          <button class="close-btn" id="modalCloseBtn" aria-label="Close">×</button>
+        </header>
+        <div id="modalBody" class="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- Confirm appointment modal -->
+    <div id="confirmModal" class="modal" hidden>
+      <div class="modal-backdrop"></div>
+      <div class="modal-content card">
+        <header class="modal-header">
+          <h2 data-i18n="confirm.title">Confirm appointment</h2>
+          <button class="close-btn" id="confirmCloseBtn" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body">
+          <div id="confirmSummary" class="fields"></div>
+          <div class="form-group">
+            <label class="form-label" for="confirmStart" data-i18n="confirm.start">Start time</label>
+            <input type="datetime-local" id="confirmStart" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="confirmDuration" data-i18n="confirm.duration">Duration (minutes)</label>
+            <input type="number" id="confirmDuration" class="form-input" min="15" step="15" value="60" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="confirmTitle" data-i18n="confirm.event_title">Event title</label>
+            <input type="text" id="confirmTitle" class="form-input" />
+          </div>
+          <div id="confirmConflict" class="conflict-warning" hidden></div>
+          <div id="confirmCalendarStatus" class="muted small" data-i18n="confirm.calendar_not_connected" hidden>
+            Google Calendar is not connected — confirming will save the appointment but no calendar event will be created.
+          </div>
+          <div class="modal-actions">
+            <button class="btn ghost" id="confirmCancelBtn" data-i18n="confirm.cancel">Cancel</button>
+            <button class="btn primary" id="confirmSubmitBtn" data-i18n="confirm.submit">Confirm appointment</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add / Edit Listing modal -->
+    <div id="listingModal" class="modal" hidden>
+      <div class="modal-backdrop"></div>
+      <div class="modal-content card modal-wide">
+        <header class="modal-header">
+          <h2 id="listingModalTitle" data-i18n="listing.add">Add Listing</h2>
+          <button class="close-btn" id="listingCloseBtn" aria-label="Close">×</button>
+        </header>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group span-2">
+              <label class="form-label" for="lStreetAddress" data-i18n="listing.address">Street Address *</label>
+              <input type="text" id="lStreetAddress" class="form-input" placeholder="123 Main St" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lCity" data-i18n="listing.city">City *</label>
+              <input type="text" id="lCity" class="form-input" placeholder="Miami" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lState" data-i18n="listing.state">State *</label>
+              <input type="text" id="lState" class="form-input" placeholder="FL" maxlength="2" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lZip" data-i18n="listing.zip">ZIP Code</label>
+              <input type="text" id="lZip" class="form-input" placeholder="33101" maxlength="5" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lMls" data-i18n="listing.mls">MLS #</label>
+              <input type="text" id="lMls" class="form-input" placeholder="MLS-12345" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lListType" data-i18n="listing.list_type">Type</label>
+              <select id="lListType" class="form-input">
+                <option value="for_sale" data-i18n="listing.type.for_sale">For Sale</option>
+                <option value="for_rent" data-i18n="listing.type.for_rent">For Rent</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lStatus" data-i18n="listing.status_label">Status</label>
+              <select id="lStatus" class="form-input">
+                <option value="active" data-i18n="listing.status.active">Active</option>
+                <option value="pending" data-i18n="listing.status.pending">Pending</option>
+                <option value="sold" data-i18n="listing.status.sold">Sold</option>
+                <option value="off_market" data-i18n="listing.status.off_market">Off Market</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lPrice" data-i18n="listing.price">Price (USD)</label>
+              <input type="number" id="lPrice" class="form-input" placeholder="450000" min="0" step="1000" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lBedrooms" data-i18n="listing.bedrooms">Bedrooms</label>
+              <input type="number" id="lBedrooms" class="form-input" placeholder="3" min="0" step="1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lBathrooms" data-i18n="listing.bathrooms">Bathrooms</label>
+              <input type="number" id="lBathrooms" class="form-input" placeholder="2.5" min="0" step="0.5" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lAreaSqft" data-i18n="listing.sqft">Area (sqft)</label>
+              <input type="number" id="lAreaSqft" class="form-input" placeholder="1800" min="0" step="50" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="lLotSqft" data-i18n="listing.lot_sqft">Lot Size (sqft)</label>
+              <input type="number" id="lLotSqft" class="form-input" placeholder="6000" min="0" step="100" />
+            </div>
+            <div class="form-group span-2">
+              <label class="form-label" for="lDescription" data-i18n="listing.description">Description</label>
+              <textarea id="lDescription" class="form-input form-textarea" rows="3" placeholder="Spacious corner unit with ocean views…"></textarea>
+            </div>
+            <div class="form-group span-2">
+              <label class="form-label" for="lFeaturesInput" data-i18n="listing.features">Features (press Enter to add)</label>
+              <input type="text" id="lFeaturesInput" class="form-input" placeholder="Pool, Garage, Hardwood floors…" />
+              <div id="lFeatureChips" class="chips-row"></div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn ghost" id="listingCancelBtn" data-i18n="listing.cancel">Cancel</button>
+            <button class="btn primary" id="listingSaveBtn" data-i18n="listing.save">Save Listing</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

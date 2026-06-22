@@ -1,0 +1,22 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# SQLite data + WAL/SHM sidecars
+server/data.db
+server/data.db-journal
+server/data.db-wal
+server/data.db-shm
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
