@@ -7,7 +7,7 @@
   "main": "server/index.js",
   "scripts": {
     "dev": "node --watch --env-file=.env server/index.js",
-    "start": "node --env-file=.env server/index.js"
+    "start": "node server/index.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.65.0",
