@@ -26,6 +26,14 @@ import {
   listPropertyTracks,
   updatePropertyTrackStatus,
   deletePropertyTrack,
+  // Lead Scores
+  listLeadScoresWithLeads,
+  getLeadScoreStats,
+  // Follow-Ups
+  listAllFollowUps,
+  stopFollowUpsForLead,
+  getFollowUpStats,
+  resetNoReplyForLead,
 } from "./store.js";
 import {
   checkConflicts,
@@ -40,6 +48,7 @@ import {
 } from "./google.js";
 import { handleInboundSms, isTwilioConfigured, validateTwilioSignature, sendReminder, sendConfirmationSms } from "./sms.js";
 import { startSmsScheduler } from "./sms-scheduler.js";
+import { startFollowUpScheduler } from "./follow-up-scheduler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -460,8 +469,51 @@ app.post("/api/sms/test", async (req, res) => {
 
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
+// ─── Lead Scores API ─────────────────────────────────────────
+
+app.get("/api/leads/scored", (_req, res) => {
+  try {
+    const leads = listLeadScoresWithLeads();
+    const stats = getLeadScoreStats();
+    res.json({ leads, stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Follow-Ups API ──────────────────────────────────────────
+
+app.get("/api/follow-ups", (_req, res) => {
+  try {
+    const followUps = listAllFollowUps();
+    const stats = getFollowUpStats();
+    res.json({ followUps, stats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/follow-ups/:leadId/stop", (req, res) => {
+  try {
+    stopFollowUpsForLead(req.params.leadId);
+    res.json({ ok: true, message: "Follow-ups stopped for this lead." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/api/follow-ups/:leadId/reset", (req, res) => {
+  try {
+    resetNoReplyForLead(req.params.leadId);
+    res.json({ ok: true, message: "No-reply counters reset for this lead." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const port = Number(process.env.PORT) || 3000;
 startSmsScheduler();
+startFollowUpScheduler();
 app.listen(port, () => {
   console.log(`Real Estate Automation server running at http://localhost:${port}`);
   console.log(`  Broker dashboard:  http://localhost:${port}/`);

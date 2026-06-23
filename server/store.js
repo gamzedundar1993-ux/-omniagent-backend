@@ -115,6 +115,37 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_tracks_lead ON property_tracks(lead_id);
   CREATE INDEX IF NOT EXISTS idx_tracks_listing ON property_tracks(listing_id);
+
+  CREATE TABLE IF NOT EXISTS lead_scores (
+    id TEXT PRIMARY KEY,
+    lead_id TEXT NOT NULL UNIQUE REFERENCES leads(id) ON DELETE CASCADE,
+    score INTEGER NOT NULL DEFAULT 0,
+    tier TEXT NOT NULL DEFAULT 'cold',
+    has_budget INTEGER DEFAULT 0,
+    has_timeline INTEGER DEFAULT 0,
+    has_phone INTEGER DEFAULT 0,
+    booked_appointment INTEGER DEFAULT 0,
+    property_interest_count INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_lead_scores_tier ON lead_scores(tier);
+  CREATE INDEX IF NOT EXISTS idx_lead_scores_score ON lead_scores(score DESC);
+
+  CREATE TABLE IF NOT EXISTS follow_ups (
+    id TEXT PRIMARY KEY,
+    lead_id TEXT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+    phone TEXT NOT NULL,
+    message_type TEXT NOT NULL,
+    message_text TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'scheduled',
+    scheduled_for TEXT NOT NULL,
+    sent_at TEXT,
+    no_reply_count INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_follow_ups_lead ON follow_ups(lead_id);
+  CREATE INDEX IF NOT EXISTS idx_follow_ups_status ON follow_ups(status, scheduled_for);
 `);
 
 // Lightweight migrations for columns added after the initial schema. SQLite
@@ -338,6 +369,80 @@ const stmts = {
         AND confirmed_start >= ?
         AND confirmed_start < ?
       ORDER BY confirmed_start ASC`
+  ),
+
+  // Lead Scores
+  upsertLeadScore: db.prepare(
+    `INSERT INTO lead_scores
+       (id, lead_id, score, tier, has_budget, has_timeline, has_phone,
+        booked_appointment, property_interest_count, created_at, updated_at)
+     VALUES
+       (@id, @lead_id, @score, @tier, @has_budget, @has_timeline, @has_phone,
+        @booked_appointment, @property_interest_count, @created_at, @updated_at)
+     ON CONFLICT(lead_id) DO UPDATE SET
+       score = excluded.score,
+       tier = excluded.tier,
+       has_budget = excluded.has_budget,
+       has_timeline = excluded.has_timeline,
+       has_phone = excluded.has_phone,
+       booked_appointment = excluded.booked_appointment,
+       property_interest_count = excluded.property_interest_count,
+       updated_at = excluded.updated_at`
+  ),
+  selectLeadScoreByLeadId: db.prepare(
+    `SELECT * FROM lead_scores WHERE lead_id = ?`
+  ),
+  selectAllLeadScores: db.prepare(
+    `SELECT ls.*, l.name AS lead_name, l.phone AS lead_phone, l.email AS lead_email,
+            l.conversation_id, l.created_at AS lead_created_at
+       FROM lead_scores ls
+       JOIN leads l ON l.id = ls.lead_id
+      ORDER BY ls.score DESC`
+  ),
+  countLeadScoresByTier: db.prepare(
+    `SELECT tier, COUNT(*) AS n FROM lead_scores GROUP BY tier`
+  ),
+
+  // Follow-ups
+  insertFollowUp: db.prepare(
+    `INSERT INTO follow_ups
+       (id, lead_id, phone, message_type, message_text, status, scheduled_for, no_reply_count, created_at)
+     VALUES
+       (@id, @lead_id, @phone, @message_type, @message_text, @status, @scheduled_for, 0, @created_at)`
+  ),
+  selectDueFollowUps: db.prepare(
+    `SELECT f.*, l.name AS lead_name
+       FROM follow_ups f
+       JOIN leads l ON l.id = f.lead_id
+      WHERE f.status = 'scheduled'
+        AND f.scheduled_for <= ?
+      ORDER BY f.scheduled_for ASC
+      LIMIT 50`
+  ),
+  selectFollowUpsByLead: db.prepare(
+    `SELECT * FROM follow_ups WHERE lead_id = ? ORDER BY scheduled_for ASC`
+  ),
+  selectAllFollowUps: db.prepare(
+    `SELECT f.*, l.name AS lead_name, l.phone AS lead_phone
+       FROM follow_ups f
+       JOIN leads l ON l.id = f.lead_id
+      ORDER BY f.scheduled_for DESC
+      LIMIT 200`
+  ),
+  updateFollowUpStatus: db.prepare(
+    `UPDATE follow_ups SET status = ?, sent_at = ? WHERE id = ?`
+  ),
+  updateFollowUpNoReply: db.prepare(
+    `UPDATE follow_ups SET no_reply_count = no_reply_count + 1 WHERE id = ?`
+  ),
+  stopFollowUpsForLead: db.prepare(
+    `UPDATE follow_ups SET status = 'stopped' WHERE lead_id = ? AND status = 'scheduled'`
+  ),
+  resetNoReplyForLead: db.prepare(
+    `UPDATE follow_ups SET no_reply_count = 0 WHERE lead_id = ? AND status = 'scheduled'`
+  ),
+  countFollowUpsByStatus: db.prepare(
+    `SELECT status, COUNT(*) AS n FROM follow_ups GROUP BY status`
   ),
 };
 
@@ -852,3 +957,146 @@ export function deletePropertyTrack(id) {
   stmts.deletePropertyTrack.run(id);
 }
 
+// ─────────────────────────────────────────────
+// Lead Scores
+// ─────────────────────────────────────────────
+
+function rowToLeadScore(row) {
+  return {
+    id: row.id,
+    leadId: row.lead_id,
+    score: row.score,
+    tier: row.tier,
+    hasBudget: row.has_budget,
+    hasTimeline: row.has_timeline,
+    hasPhone: row.has_phone,
+    bookedAppointment: row.booked_appointment,
+    propertyInterestCount: row.property_interest_count,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    // Joined fields (if present)
+    leadName: row.lead_name ?? null,
+    leadPhone: row.lead_phone ?? null,
+    leadEmail: row.lead_email ?? null,
+    conversationId: row.conversation_id ?? null,
+    leadCreatedAt: row.lead_created_at ?? null,
+  };
+}
+
+export function upsertLeadScore({
+  leadId, score, tier, hasBudget = 0, hasTimeline = 0,
+  hasPhone = 0, bookedAppointment = 0, propertyInterestCount = 0,
+}) {
+  const id = randomUUID();
+  const t = now();
+  stmts.upsertLeadScore.run({
+    id,
+    lead_id: leadId,
+    score,
+    tier,
+    has_budget: hasBudget,
+    has_timeline: hasTimeline,
+    has_phone: hasPhone,
+    booked_appointment: bookedAppointment,
+    property_interest_count: propertyInterestCount,
+    created_at: t,
+    updated_at: t,
+  });
+  return getLeadScoreByLeadId(leadId);
+}
+
+export function getLeadScoreByLeadId(leadId) {
+  const row = stmts.selectLeadScoreByLeadId.get(leadId);
+  return row ? rowToLeadScore(row) : null;
+}
+
+export function listLeadScoresWithLeads() {
+  return stmts.selectAllLeadScores.all().map(rowToLeadScore);
+}
+
+export function getLeadScoreStats() {
+  const rows = stmts.countLeadScoresByTier.all();
+  const result = { hot: 0, warm: 0, cold: 0 };
+  for (const row of rows) {
+    result[row.tier] = row.n;
+  }
+  return result;
+}
+
+// ─────────────────────────────────────────────
+// Follow-Ups
+// ─────────────────────────────────────────────
+
+function rowToFollowUp(row) {
+  return {
+    id: row.id,
+    leadId: row.lead_id,
+    phone: row.phone,
+    messageType: row.message_type,
+    messageText: row.message_text,
+    status: row.status,
+    scheduledFor: row.scheduled_for,
+    sentAt: row.sent_at ?? null,
+    noReplyCount: row.no_reply_count ?? 0,
+    createdAt: row.created_at,
+    leadName: row.lead_name ?? null,
+    leadPhone: row.lead_phone ?? null,
+  };
+}
+
+export function createFollowUp({ leadId, phone, messageType, messageText, scheduledFor }) {
+  const id = randomUUID();
+  const t = now();
+  stmts.insertFollowUp.run({
+    id,
+    lead_id: leadId,
+    phone,
+    message_type: messageType,
+    message_text: messageText,
+    status: "scheduled",
+    scheduled_for: scheduledFor,
+    created_at: t,
+  });
+  return { id, leadId, phone, messageType, messageText, status: "scheduled", scheduledFor, createdAt: t };
+}
+
+export function listDueFollowUps(beforeIso) {
+  return stmts.selectDueFollowUps.all(beforeIso).map(rowToFollowUp);
+}
+
+export function listFollowUpsByLead(leadId) {
+  return stmts.selectFollowUpsByLead.all(leadId).map(rowToFollowUp);
+}
+
+export function listAllFollowUps() {
+  return stmts.selectAllFollowUps.all().map(rowToFollowUp);
+}
+
+export function markFollowUpSent(id) {
+  stmts.updateFollowUpStatus.run("sent", now(), id);
+}
+
+export function markFollowUpFailed(id) {
+  stmts.updateFollowUpStatus.run("failed", now(), id);
+}
+
+export function incrementNoReplyCount(id) {
+  stmts.updateFollowUpNoReply.run(id);
+}
+
+export function stopFollowUpsForLead(leadId) {
+  stmts.stopFollowUpsForLead.run(leadId);
+}
+
+export function resetNoReplyForLead(leadId) {
+  stmts.resetNoReplyForLead.run(leadId);
+}
+
+export function getFollowUpStats() {
+  const rows = stmts.countFollowUpsByStatus.all();
+  const result = { scheduled: 0, sent: 0, failed: 0, stopped: 0 };
+  for (const row of rows) {
+    result[row.status] = row.n;
+  }
+  return result;
+}
