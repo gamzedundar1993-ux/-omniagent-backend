@@ -386,7 +386,7 @@
     if (isOpen && !hasGreeted) {
       hasGreeted = true;
       let finalGreeting = t.greeting;
-      const isDemoSite = window.location.hostname.includes("omniagent") || window.location.hostname.includes("lovable.app");
+      const isDemoSite = (window.location.hostname.includes("omniagent") || window.location.hostname.includes("lovable.app")) && !window.location.search.includes("client=true");
       if (isDemoSite && locale === "en") {
         finalGreeting = "Hi! I am the OmniAgent AI Demo. I help real estate brokers automate their sales 24/7. To see how I work, please pretend to be a home buyer and ask me to find a house, or ask me how I can help your agency!";
       }
