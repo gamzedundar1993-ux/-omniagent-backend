@@ -75,5 +75,42 @@
   "listing.status.sold": "Sold",
   "listing.status.off_market": "Off Market",
   "listing.cancel": "Cancel",
-  "listing.save": "Save Listing"
+  "listing.save": "Save Listing",
+
+  "tabs.settings": "Settings",
+
+  "appt.action.cancel": "Cancel",
+  "appt.calendar_link": "View in Google Calendar",
+
+  "confirm.title": "Confirm appointment",
+  "confirm.start": "Start time",
+  "confirm.duration": "Duration (minutes)",
+  "confirm.event_title": "Event title",
+  "confirm.cancel": "Cancel",
+  "confirm.submit": "Confirm appointment",
+  "confirm.cancel_prompt": "Cancel this confirmed appointment?",
+  "confirm.invalid_time": "Please enter a valid start time.",
+  "confirm.conflict_title": "This time conflicts with existing events:",
+  "confirm.conflict_unnamed": "Untitled event",
+  "confirm.calendar_not_connected": "Google Calendar is not connected — confirming will save the appointment but no calendar event will be created.",
+  "confirm.calendar_error": "The appointment was saved, but the calendar event could not be created: {error}",
+
+  "settings.calendar.title": "Google Calendar integration",
+  "settings.calendar.help": "Connect your Google Calendar so that confirmed appointments automatically create events and send invitations to visitors.",
+  "settings.calendar.checking": "Checking…",
+  "settings.calendar.connect": "Connect Google Calendar",
+  "settings.calendar.disconnect": "Disconnect",
+  "settings.calendar.disconnect_prompt": "Disconnect Google Calendar? Confirmed appointments will no longer create calendar events.",
+  "settings.calendar.connected": "Google Calendar connected",
+  "settings.calendar.connected_as": "Connected as {email}",
+  "settings.calendar.not_connected": "Not connected",
+  "settings.calendar.not_configured": "OAuth credentials are not set on the server. See .env.example to configure GOOGLE_OAUTH_CLIENT_ID / SECRET.",
+  "settings.calendar.not_configured_short": "Not configured on server",
+  "settings.calendar.unknown": "Status unknown",
+  "settings.calendar.oauth_error": "Google Calendar connection failed: {reason}",
+
+  "settings.sms.title": "SMS Reminders",
+  "settings.sms.help": "Automatically send an SMS to visitors 3 hours before their confirmed appointment. They can reply YES to confirm or NO to reschedule.",
+  "settings.sms.checking": "Checking…",
+  "settings.sms.not_configured_hint": "Twilio credentials are not set. See .env.example to configure TWILIO_ACCOUNT_SID / AUTH_TOKEN / FROM_NUMBER."
 }

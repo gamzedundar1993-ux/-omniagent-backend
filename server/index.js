@@ -75,6 +75,61 @@ app.use(
 );
 
 app.use(express.json({ limit: "256kb" }));
+
+// ─── Dashboard authentication ────────────────────────────────────────────────
+// The broker dashboard and its data endpoints expose customer PII (lead names,
+// emails, phones, full chat transcripts) and let the caller create listings —
+// which fires real Twilio SMS to matching leads. Without a gate, anyone who
+// knows the URL can read that data and trigger SMS. This middleware puts HTTP
+// Basic Auth in front of everything EXCEPT the surfaces that must stay public:
+//   - /widget.js          → embedded on brokers' own websites (cross-origin)
+//   - /api/chat/*         → called by the widget on behalf of anonymous visitors
+//   - /api/sms/webhook    → called by Twilio (validated by signature, not auth)
+//   - /api/google/oauth/* → the OAuth round-trip (callback comes from Google)
+//   - /api/health         → harmless status ping
+//
+// It only activates when DASHBOARD_PASSWORD is set (see .env.example). If it is
+// unset the dashboard stays open AND the server logs a loud warning, so we never
+// silently lock the broker out — they opt in by setting the env var on Render.
+const DASHBOARD_USER = process.env.DASHBOARD_USER || "broker";
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || "";
+
+// Paths that must never require auth. Matched as exact ("/x") or prefix ("/x/").
+const PUBLIC_PATHS = ["/widget.js", "/api/health"];
+const PUBLIC_PREFIXES = ["/api/chat/", "/api/google/oauth/"];
+
+function isPublicPath(p) {
+  if (p === "/api/sms/webhook") return true;
+  if (PUBLIC_PATHS.includes(p)) return true;
+  return PUBLIC_PREFIXES.some((prefix) => p.startsWith(prefix));
+}
+
+// Constant-time-ish credential compare. Basic Auth sends "Basic base64(user:pass)".
+function checkBasicAuth(header) {
+  if (!header || !header.startsWith("Basic ")) return false;
+  let decoded;
+  try {
+    decoded = Buffer.from(header.slice(6), "base64").toString("utf8");
+  } catch {
+    return false;
+  }
+  const sep = decoded.indexOf(":");
+  if (sep === -1) return false;
+  const user = decoded.slice(0, sep);
+  const pass = decoded.slice(sep + 1);
+  return user === DASHBOARD_USER && pass === DASHBOARD_PASSWORD;
+}
+
+app.use((req, res, next) => {
+  if (!DASHBOARD_PASSWORD) return next(); // auth disabled until configured
+  if (isPublicPath(req.path)) return next();
+  if (checkBasicAuth(req.headers.authorization)) return next();
+  res
+    .set("WWW-Authenticate", 'Basic realm="OmniAgent Dashboard", charset="UTF-8"')
+    .status(401)
+    .json({ error: "Authentication required." });
+});
+
 app.use(express.static(publicDir));
 
 function configured() {
@@ -467,8 +522,6 @@ app.post("/api/sms/test", async (req, res) => {
   }
 });
 
-app.use((_req, res) => res.status(404).json({ error: "Not found" }));
-
 // ─── Lead Scores API ─────────────────────────────────────────
 
 app.get("/api/leads/scored", (_req, res) => {
@@ -511,6 +564,11 @@ app.post("/api/follow-ups/:leadId/reset", (req, res) => {
   }
 });
 
+// Catch-all 404 — MUST be the last middleware registered. Anything below this
+// line is unreachable (see CLAUDE.md). It previously sat above the Lead Scores
+// and Follow-Ups routes, which silently made all four of those endpoints 404.
+app.use((_req, res) => res.status(404).json({ error: "Not found" }));
+
 const port = Number(process.env.PORT) || 3000;
 startSmsScheduler();
 startFollowUpScheduler();
@@ -521,6 +579,14 @@ app.listen(port, () => {
   console.log(`    <script src="http://localhost:${port}/widget.js" async></script>`);
   if (!configured()) {
     console.warn("Warning: ANTHROPIC_API_KEY is not set. Create a .env file from .env.example.");
+  }
+  if (!DASHBOARD_PASSWORD) {
+    console.warn(
+      "SECURITY WARNING: DASHBOARD_PASSWORD is not set — the broker dashboard and all " +
+        "data endpoints (leads, conversations, appointments, listings) are PUBLIC. " +
+        "Anyone with the URL can read customer PII and trigger SMS. Set DASHBOARD_PASSWORD " +
+        "(and optionally DASHBOARD_USER) to require login. See .env.example."
+    );
   }
   if (!isGoogleConfigured()) {
     console.warn(

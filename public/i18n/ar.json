@@ -75,5 +75,42 @@
   "listing.status.sold": "تم البيع",
   "listing.status.off_market": "خارج السوق",
   "listing.cancel": "إلغاء",
-  "listing.save": "حفظ العقار"
+  "listing.save": "حفظ العقار",
+
+  "tabs.settings": "الإعدادات",
+
+  "appt.action.cancel": "إلغاء",
+  "appt.calendar_link": "عرض في تقويم Google",
+
+  "confirm.title": "تأكيد الموعد",
+  "confirm.start": "وقت البدء",
+  "confirm.duration": "المدة (بالدقائق)",
+  "confirm.event_title": "عنوان الحدث",
+  "confirm.cancel": "إلغاء",
+  "confirm.submit": "تأكيد الموعد",
+  "confirm.cancel_prompt": "هل تريد إلغاء هذا الموعد المؤكَّد؟",
+  "confirm.invalid_time": "الرجاء إدخال وقت بدء صالح.",
+  "confirm.conflict_title": "يتعارض هذا الوقت مع أحداث موجودة:",
+  "confirm.conflict_unnamed": "حدث بدون عنوان",
+  "confirm.calendar_not_connected": "تقويم Google غير متصل — سيؤدي التأكيد إلى حفظ الموعد دون إنشاء حدث في التقويم.",
+  "confirm.calendar_error": "تم حفظ الموعد، لكن تعذّر إنشاء الحدث في التقويم: {error}",
+
+  "settings.calendar.title": "تكامل تقويم Google",
+  "settings.calendar.help": "اربط تقويم Google الخاص بك لكي تنشئ المواعيد المؤكَّدة أحداثًا تلقائيًا وترسل دعوات إلى الزوار.",
+  "settings.calendar.checking": "جارٍ التحقق…",
+  "settings.calendar.connect": "ربط تقويم Google",
+  "settings.calendar.disconnect": "قطع الاتصال",
+  "settings.calendar.disconnect_prompt": "هل تريد قطع الاتصال بتقويم Google؟ لن تنشئ المواعيد المؤكَّدة أحداثًا في التقويم بعد الآن.",
+  "settings.calendar.connected": "تقويم Google متصل",
+  "settings.calendar.connected_as": "متصل باسم {email}",
+  "settings.calendar.not_connected": "غير متصل",
+  "settings.calendar.not_configured": "بيانات اعتماد OAuth غير مضبوطة على الخادم. راجع .env.example لضبط GOOGLE_OAUTH_CLIENT_ID / SECRET.",
+  "settings.calendar.not_configured_short": "غير مُهيّأ على الخادم",
+  "settings.calendar.unknown": "الحالة غير معروفة",
+  "settings.calendar.oauth_error": "فشل الاتصال بتقويم Google: {reason}",
+
+  "settings.sms.title": "تذكيرات SMS",
+  "settings.sms.help": "أرسل رسالة SMS تلقائيًا إلى الزوار قبل 3 ساعات من موعدهم المؤكَّد. يمكنهم الرد بـ YES للتأكيد أو NO لإعادة الجدولة.",
+  "settings.sms.checking": "جارٍ التحقق…",
+  "settings.sms.not_configured_hint": "بيانات اعتماد Twilio غير مضبوطة. راجع .env.example لضبط TWILIO_ACCOUNT_SID / AUTH_TOKEN / FROM_NUMBER."
 }

@@ -75,5 +75,42 @@
   "listing.status.sold": "Vendida",
   "listing.status.off_market": "Fuera del mercado",
   "listing.cancel": "Cancelar",
-  "listing.save": "Guardar propiedad"
+  "listing.save": "Guardar propiedad",
+
+  "tabs.settings": "Ajustes",
+
+  "appt.action.cancel": "Cancelar",
+  "appt.calendar_link": "Ver en Google Calendar",
+
+  "confirm.title": "Confirmar cita",
+  "confirm.start": "Hora de inicio",
+  "confirm.duration": "Duración (minutos)",
+  "confirm.event_title": "Título del evento",
+  "confirm.cancel": "Cancelar",
+  "confirm.submit": "Confirmar cita",
+  "confirm.cancel_prompt": "¿Cancelar esta cita confirmada?",
+  "confirm.invalid_time": "Por favor, introduzca una hora de inicio válida.",
+  "confirm.conflict_title": "Este horario entra en conflicto con eventos existentes:",
+  "confirm.conflict_unnamed": "Evento sin título",
+  "confirm.calendar_not_connected": "Google Calendar no está conectado — al confirmar se guardará la cita, pero no se creará ningún evento en el calendario.",
+  "confirm.calendar_error": "La cita se guardó, pero no se pudo crear el evento en el calendario: {error}",
+
+  "settings.calendar.title": "Integración con Google Calendar",
+  "settings.calendar.help": "Conecte su Google Calendar para que las citas confirmadas creen eventos automáticamente y envíen invitaciones a los visitantes.",
+  "settings.calendar.checking": "Comprobando…",
+  "settings.calendar.connect": "Conectar Google Calendar",
+  "settings.calendar.disconnect": "Desconectar",
+  "settings.calendar.disconnect_prompt": "¿Desconectar Google Calendar? Las citas confirmadas ya no crearán eventos en el calendario.",
+  "settings.calendar.connected": "Google Calendar conectado",
+  "settings.calendar.connected_as": "Conectado como {email}",
+  "settings.calendar.not_connected": "No conectado",
+  "settings.calendar.not_configured": "Las credenciales de OAuth no están configuradas en el servidor. Consulte .env.example para configurar GOOGLE_OAUTH_CLIENT_ID / SECRET.",
+  "settings.calendar.not_configured_short": "No configurado en el servidor",
+  "settings.calendar.unknown": "Estado desconocido",
+  "settings.calendar.oauth_error": "Falló la conexión con Google Calendar: {reason}",
+
+  "settings.sms.title": "Recordatorios por SMS",
+  "settings.sms.help": "Envíe automáticamente un SMS a los visitantes 3 horas antes de su cita confirmada. Pueden responder YES para confirmar o NO para reprogramar.",
+  "settings.sms.checking": "Comprobando…",
+  "settings.sms.not_configured_hint": "Las credenciales de Twilio no están configuradas. Consulte .env.example para configurar TWILIO_ACCOUNT_SID / AUTH_TOKEN / FROM_NUMBER."
 }
