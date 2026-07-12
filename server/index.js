@@ -49,6 +49,7 @@ import {
 import { handleInboundSms, isTwilioConfigured, validateTwilioSignature, sendReminder, sendConfirmationSms } from "./sms.js";
 import { startSmsScheduler } from "./sms-scheduler.js";
 import { startFollowUpScheduler } from "./follow-up-scheduler.js";
+import { maybeSeedDemoOnStartup } from "./seed-demo.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -570,6 +571,9 @@ app.post("/api/follow-ups/:leadId/reset", (req, res) => {
 app.use((_req, res) => res.status(404).json({ error: "Not found" }));
 
 const port = Number(process.env.PORT) || 3000;
+// Optional: load curated demo data on boot (only when SEED_DEMO="true" and the
+// DB is empty). Lets a demo backend heal itself after an ephemeral-storage wipe.
+maybeSeedDemoOnStartup();
 startSmsScheduler();
 startFollowUpScheduler();
 app.listen(port, () => {

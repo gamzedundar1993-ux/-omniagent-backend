@@ -1100,3 +1100,28 @@ export function getFollowUpStats() {
   }
   return result;
 }
+
+// ─────────────────────────────────────────────
+// Demo / test data reset
+// ─────────────────────────────────────────────
+// Wipes all operational data so a clean, curated demo can be seeded on top
+// (see server/seed-demo.js). oauth_tokens is deliberately preserved so a
+// connected Google Calendar survives a reseed. Deletes run children-first to
+// respect foreign keys, all inside one transaction so a failure rolls back.
+export function resetDemoData() {
+  const order = [
+    "follow_ups",
+    "lead_scores",
+    "property_tracks",
+    "sms_reminders",
+    "messages",
+    "appointments",
+    "leads",
+    "listings",
+    "conversations",
+  ];
+  const tx = db.transaction(() => {
+    for (const table of order) db.prepare(`DELETE FROM ${table}`).run();
+  });
+  tx();
+}
